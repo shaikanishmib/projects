@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=75,<81"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sec-filing-intelligence"
+version = "0.1.0"
+description = "Educational, offline-first filing retrieval with verifiable extractive citations"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=9.0.3,<10", "nbformat>=5.10,<6", "nbclient>=0.10,<0.11", "ipykernel>=6.29,<7"]
+
+[project.scripts]
+filing-qa = "sec_filing_intelligence.cli:main"
+filing-evaluate = "sec_filing_intelligence.evaluate:main"
+filing-fetch = "sec_filing_intelligence.acquire:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

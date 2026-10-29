@@ -1,0 +1,29 @@
+[
+  {
+    "id": "cedar-2024-10k",
+    "company": "Cedar Demonstration Devices (fictional)",
+    "form": "10-K",
+    "period": "2024-12-31",
+    "source_url": "fixture://cedar-2024-10k",
+    "provenance": "Author-created synthetic teaching fixture; not an SEC filing.",
+    "text": "Item 7. Management discussion\n\nCedar Demonstration Devices reported revenue of $120 million for fiscal 2024, compared with $100 million for fiscal 2023. Revenue increased as device shipments grew.\n\nItem 1A. Risk factors\n\nCedar relies on a single supplier for specialty sensors. A disruption at that supplier could delay production and reduce revenue.\n\nItem 8. Liquidity\n\nCedar held $35 million in cash and cash equivalents at December 31, 2024. Its revolving credit facility had no outstanding borrowings."
+  },
+  {
+    "id": "cedar-2023-10k",
+    "company": "Cedar Demonstration Devices (fictional)",
+    "form": "10-K",
+    "period": "2023-12-31",
+    "source_url": "fixture://cedar-2023-10k",
+    "provenance": "Author-created synthetic teaching fixture; not an SEC filing.",
+    "text": "Item 7. Management discussion\n\nCedar Demonstration Devices reported revenue of $100 million for fiscal 2023.\n\nItem 8. Liquidity\n\nCedar held $22 million in cash and cash equivalents at December 31, 2023."
+  },
+  {
+    "id": "harbor-2024-10k",
+    "company": "Harbor Demonstration Software (fictional)",
+    "form": "10-K",
+    "period": "2024-12-31",
+    "source_url": "fixture://harbor-2024-10k",
+    "provenance": "Author-created synthetic teaching fixture; not an SEC filing.",
+    "text": "Item 7. Management discussion\n\nHarbor Demonstration Software reported subscription revenue of $80 million for fiscal 2024. Annual customer retention was 91 percent.\n\nItem 1A. Risk factors\n\nHarbor stores customer records with third-party cloud providers. Service interruptions or unauthorized access could harm customer trust."
+  }
+]

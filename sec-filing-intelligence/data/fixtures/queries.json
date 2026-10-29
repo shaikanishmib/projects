@@ -1,0 +1,9 @@
+[
+  {"id": "cedar-revenue", "query": "What was Cedar revenue in fiscal 2024?", "filters": {"document_id": "cedar-2024-10k"}, "relevant_chunk_ids": ["cedar-2024-10k:p1"], "expected_answer": true},
+  {"id": "cedar-supplier", "query": "What supplier risk does Cedar face?", "filters": {"document_id": "cedar-2024-10k"}, "relevant_chunk_ids": ["cedar-2024-10k:p3"], "expected_answer": true},
+  {"id": "cedar-cash", "query": "How much cash did Cedar hold at December 31, 2024?", "filters": {"document_id": "cedar-2024-10k"}, "relevant_chunk_ids": ["cedar-2024-10k:p5"], "expected_answer": true},
+  {"id": "cedar-prior-cash", "query": "Cedar cash and cash equivalents", "filters": {"document_id": "cedar-2023-10k"}, "relevant_chunk_ids": ["cedar-2023-10k:p3"], "expected_answer": true},
+  {"id": "harbor-retention", "query": "What was Harbor customer retention?", "filters": {"document_id": "harbor-2024-10k"}, "relevant_chunk_ids": ["harbor-2024-10k:p1"], "expected_answer": true},
+  {"id": "harbor-risk", "query": "What cloud service risks affect Harbor?", "filters": {"document_id": "harbor-2024-10k"}, "relevant_chunk_ids": ["harbor-2024-10k:p3"], "expected_answer": true},
+  {"id": "unanswerable", "query": "Zirconium dividend forecast", "filters": {}, "relevant_chunk_ids": [], "expected_answer": false}
+]

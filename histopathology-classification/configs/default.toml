@@ -1,0 +1,9 @@
+seed = 42
+validation_fraction = 0.2
+test_fraction = 0.2
+image_size = 96
+epochs = 10
+batch_size = 16
+learning_rate = 0.001
+threads = 1
+bootstrap_replicates = 1000
