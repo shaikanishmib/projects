@@ -1,0 +1,15 @@
+{
+  "source_url": "https://data.openml.org/datasets/0000/1597/dataset_1597.pq",
+  "metadata_url": "https://www.openml.org/api/v1/json/data/1597",
+  "bytes": 73231184,
+  "sha256": "b7efcb35a428bbe22347a05d2437d9177bab07ce61e51214a17bec584ad9496d",
+  "retrieved_at_utc": "2026-10-31T22:31:45.661224+00:00",
+  "format": "OpenML Parquet",
+  "license_metadata": "Public",
+  "rights_evidence": {
+    "url": "https://www.kaggle.com/api/v1/datasets/view/mlg-ulb/creditcardfraud",
+    "review_date": "2026-10-31",
+    "licenseName": "Database: Open Database, Contents: Database Contents",
+    "scope": "Original ULB listing attribution; OpenML metadata itself says Public"
+  }
+}

@@ -1,21 +1,38 @@
-# Data card
+# ULB/Worldline data provenance
 
-## Included source
+## Source and rights evidence
 
-The repository contains source for an explicitly synthetic generator and small in-memory test fixtures. It contains no downloaded transactions, real account identifiers, generated dataset, or executed experiment outputs. The generator uses NumPy's seeded random number generator; it samples timestamps uniformly over 90 days, amounts from a lognormal distribution, two binary indicators, and account ages from an exponential distribution.
+The preferred [IEEE-CIS competition](https://www.kaggle.com/competitions/ieee-fraud-detection/data) requires Kaggle access and applicable competition rules. This environment had neither configured Kaggle credentials nor confirmed competition access. No competition rules were accepted automatically and no IEEE-CIS files were obtained.
 
-Labels are Bernoulli samples from a fixed logistic function of amount, international status, card presence, young account age, and early UTC hour. The final 18 days increase log amounts and label log odds to introduce a known distribution shift. Coefficients in the generator are simulation assumptions, not empirical estimates. Noise deliberately creates irreducible overlap between normal and anomalous examples.
+The fallback is [OpenML dataset 1597, version 1](https://www.openml.org/api/v1/json/data/1597), uploaded on 2015-06-25. OpenML credits Andrea Dal Pozzolo, Olivier Caelen, and Gianluca Bontempi and describes a collaboration between Worldline and ULB. It records 284,807 European credit-card transactions over two days in September 2013, with 492 fraud labels. These counts were verified locally.
 
-Generator outputs and authored test fixtures are dedicated to the public domain under CC0-1.0, to the extent the authors hold rights in them. Source code is MIT licensed. No third-party dataset license or usage rights are asserted. The generated sidecar records synthetic status, seed, row count, content hash, and license. Retain it with the CSV; training hashes the input CSV but does not verify licensing or sidecar claims.
+The [ULB Kaggle listing](https://www.kaggle.com/datasets/mlg-ulb/creditcardfraud) supplies more specific rights evidence than OpenML's `Public` label. Its [public API metadata](https://www.kaggle.com/api/v1/datasets/view/mlg-ulb/creditcardfraud), checked on 2026-10-31, reports `Database: Open Database, Contents: Database Contents`. These names refer to the [Open Database License](https://opendatacommons.org/licenses/odbl/1-0/) and [Database Contents License](https://opendatacommons.org/licenses/dbcl/1-0/). This records the original listing's attribution; it does not independently establish the uploader's authority or grant rights to other distributions.
 
-## Temporal protocol
+Citation: Andrea Dal Pozzolo, Olivier Caelen, Reid A. Johnson, and Gianluca Bontempi. *Calibrating Probability with Undersampling for Unbalanced Classification*. IEEE Symposium on Computational Intelligence and Data Mining, 2015.
 
-The default boundaries are 2025-02-24 UTC (day 54) and 2025-03-14 UTC (day 72), corresponding to approximate 60/20/20 proportions under uniform timestamp generation. Exact counts vary with seed. Split by timestamp before fitting any scaler or model; no random train/test split is supported. Future data never determines training feature statistics, candidate selection, or thresholds.
+Raw data, individual scores, model objects, and sensitive records are excluded from Git. The publication contains original aggregate analysis. Further redistribution or operational use requires reviewing the applicable database and contents obligations. This repository's software license does not relicense the dataset.
 
-All feature values must describe what was known at authorization time. Labels must represent a fixed, documented outcome horizon. Real chargebacks can mature weeks later: use an embargo or move training cutoffs back sufficiently so all training labels were known before validation decisions. The current synthetic dataset has immediate labels and does not implement delayed-label simulation or automatic embargo. Repeated customer identity and cross-file duplicates cannot be checked without additional identifiers and governance.
+## Exact downloaded distribution
 
-## Bringing another dataset
+- Source: `https://data.openml.org/datasets/0000/1597/dataset_1597.pq`.
+- Local path: `data/creditcard.parquet`.
+- Bytes: 73,231,184.
+- SHA-256: `b7efcb35a428bbe22347a05d2437d9177bab07ce61e51214a17bec584ad9496d`.
+- Retrieval: 2026-10-31; exact UTC timestamp is in [the source record](../reports/source.json).
+- Shape: 284,807 rows and 31 columns; fraud count: 492.
 
-Before using the CSV contract, record the owner, original source URL or internal reference, version/date, license or explicit permission, permitted uses, content hash, timezone/currency conventions, consent/privacy controls, collection population, sampling, outcome definition, and feature availability times. Do not assume an internet-accessible file is openly licensed. Do not use private records in this repository.
+Two ARFF transfer attempts stalled and were stopped. OpenML's advertised Parquet distribution was downloaded completely with curl. The original ARFF's published MD5, `178bcf9bb1f31a3dfe12d0e577884add`, was not verified and does not apply to the Parquet representation. The notebook checks the downloaded Parquet bytes, schema, and cohort counts. A checksum identifies the reviewed file; it does not prove license ownership.
 
-Choose boundaries according to collection dates and label maturation. Freeze candidate models and validation selection criteria before inspecting test metrics. Retain raw and transformed data lineage. Investigate repeated transaction IDs and repeated entities, bot-like bursts, exclusions, refunds, missing values, inconsistent timezones, and label disagreements before evaluation. The strict schema rejects problems rather than silently imputing them.
+## Original fields and exclusions
+
+`V1` to `V28` are anonymized PCA components; `Amount` and `Time` retain their source meanings. `Class` is 1 for recorded fraud and 0 otherwise. `Time` is elapsed seconds from the first transaction, without a known calendar origin. No account age, international indicator, card-presence flag, invented transaction ID, or artificial label enters the real-data study. Zero amounts are permitted. Missing, nonfinite, negative time/amount, and nonbinary outcomes fail validation.
+
+Models use the 28 components and original amount. `Time` is reserved for chronological partitioning and diagnostics. The PCA fitting cohort and feature availability are unknown, which limits leakage assurance. There are no cardholder identities or label-arrival dates.
+
+## Filtering and partitions
+
+After a stable time sort, exact duplicates of the 29 predictor values are removed, keeping the earliest record without using its label. This removes 9,144 later records, including 19 recorded frauds, and leaves 275,663 records with 473 frauds. Exact-repeat filtering can also remove genuine repeated purchases. It cannot identify transformed repeats or repeated people.
+
+Training uses `Time < 103680`; validation uses `103680 <= Time < 138240`; test uses `Time >= 138240`. Tied seconds stay together. The partitions contain 150,174 / 54,811 / 70,678 records and 331 / 45 / 97 frauds. Each partition has both outcomes. Scaling and fitting use training only; model selection, F1 cutoffs, and capacity cutoffs use validation only. Test comparisons cover the predeclared candidates after selection. The model is not refitted on validation.
+
+The dataset has only two days of transactions. The study cannot enforce a realistic chargeback-maturity embargo, infer customer separation, or establish performance across banks, countries, or later periods. See [the notebook](../notebooks/01_real_data_workflow.ipynb) for aggregate diagnostics and conditional uncertainty.
