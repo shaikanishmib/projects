@@ -1,0 +1,13 @@
+# Publication review: 2026-10-31
+
+The research notebook ran from a fresh kernel with 26 cells, 12 code cells numbered 1 through 12, no error outputs, and 10 saved figures. Training completed separately on genuine original BreaKHis images; the fresh analysis kernel checked the retained runs against source hashes, configuration, exact patient membership, provenance, and completed status. Saved histories, metrics, and figures come from those completed experiments. No training or evaluation output was invented.
+
+All 31 tests passed. One expected scikit-learn warning arises from a single-class evaluation test. New tests cover original source-name parsing, conservative grouping across magnification and subtype, unknown names, inconsistent source labels, safe archive paths, and gzip CRC corruption. The existing framework tests verify patient-disjoint splits, malformed inputs, baseline numerical reconstruction, and CNN behavior. Artificial fixtures are software checks only.
+
+The original university archive was downloaded completely and traversed with gzip CRC validation. All 7,909 unique images were verified before fitting. The audit found 82 source subtype folders but 81 conservative source identifiers, and 74 images with height 456 rather than 460 pixels. Those findings are documented in [DATA.md](DATA.md). The study uses the provider's noncommercial research paragraph and required citation, with original files retained locally.
+
+The engineering review adds an original-source archive adapter and tests while preserving the maintained training, preprocessing, and evaluation logic. The published configuration records the actual CPU experiment. The CNN's all-malignant operating point, weak validation ranking, wide paired interval, and small benign test sample remain visible in the report. No clinical-performance claim is made.
+
+Humanizer was applied to all changed human-facing prose, including notebook Markdown, documentation, source comments and docstrings, CLI descriptions and messages, and the commit description. Every changed file and saved output was reviewed for sensitive material and unsupported claims. All ten figures were inspected. The notebook includes one cited panel of small transformed source-image crops, aggregate distributions, curves, and metrics. Original image files, source identifiers, per-image predictions, model weights, and full split manifests remain excluded. No formal anonymity guarantee is asserted for small aggregate groups.
+
+The remaining limits are source-identity ambiguity, one collection, one split and seed, loss of tissue detail during cropping/resizing, a short CPU training budget, and no external or clinical validation.

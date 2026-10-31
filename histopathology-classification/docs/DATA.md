@@ -1,8 +1,30 @@
 # Data contract and acquisition
 
-No public images, patient identifiers, trained weights, or downloaded datasets are bundled. This repository does not acquire data. Use only locally supplied images whose license you have reviewed and whose use and redistribution terms you can meet. License fields are operator assertions; the program cannot verify legal rights or the authenticity of patient IDs.
+## Original source and observed collection
 
-A possible source to investigate is the [BreaKHis provider page](https://web.inf.ufpr.br/vri/databases/breast-cancer-histopathological-database-breakhis/). This is a discovery reference, not a claim that its current terms permit your intended use. No provider page was accessed during implementation. Review the provider's actual license/permission and attribution requirements before obtaining any images. Do not substitute a mirror's license for the original provider's terms. If terms do not authorize your use, select another licensed source. Record its exact release, original checksums, required citation, magnification/site coverage, and preprocessing in provenance metadata.
+The original [BreaKHis provider](https://web.inf.ufpr.br/vri/databases/breast-cancer-histopathological-database-breakhis/) was reviewed on 2026-10-31. Its access paragraph permits noncommercial research with citation; a CC BY 4.0 badge also appears on the page. This study follows the noncommercial restriction and does not infer broader commercial permission. The requested research analysis is noncommercial. Original images and model weights remain local and are excluded from Git. The software license does not relicense the images. The provider asks users to complete a post-download contact form; it was not submitted.
+
+Required citation: Spanhol, F., Oliveira, L. S., Petitjean, C., and Heutte, L. *A Dataset for Breast Cancer Histopathological Image Classification*. IEEE Transactions on Biomedical Engineering, 63(7):1455-1462, 2016. [DOI: 10.1109/TBME.2015.2496264](https://doi.org/10.1109/TBME.2015.2496264).
+
+The archive was retrieved directly from `https://www.inf.ufpr.br/vri/databases/BreaKHis_v1.tar.gz` on 2026-10-31. It contains 4,273,561,758 bytes with SHA-256 `d118014cf8a58f6d1fc4571e55efb523c932c85cfba2fb05627e455fc40bd640`. The complete HTTP length matched, gzip traversal checked its CRC, and all tar members were read. The experiment ingester verified all 7,909 images and their unique content hashes. All are RGB PNGs: 7,835 measure 700 by 460 pixels and 74 measure 700 by 456 pixels. No images were excluded for this small height difference. No provider checksum was available on the reviewed page; the SHA-256 is a local identity record, not independent authentication of the provider.
+
+| Magnification | Benign images | Malignant images | Total |
+| --- | ---: | ---: | ---: |
+| 40X | 625 | 1,370 | 1,995 |
+| 100X | 644 | 1,437 | 2,081 |
+| 200X | 623 | 1,390 | 2,013 |
+| 400X | 588 | 1,232 | 1,820 |
+| All | 2,480 | 5,429 | 7,909 |
+
+The provider introduction says 9,109 images, while its table and the cited paper describe 7,909. The webpage also gives a benign 40X entry of 652 that does not agree with its total. The counts above were measured from the downloaded original archive. Small transformed crops in the notebook illustrate the input under the cited research use; full original image files are not published.
+
+## Source identities and splits
+
+The provider's naming grammar is `SOB_CLASS_SUBTYPE-YEAR-SLIDE_ID-MAG-SEQUENCE.png`. Labels and magnifications are parsed from these source fields; subtype/class inconsistencies are rejected. The patient grouping retains the literal `YEAR-SLIDE_ID`, including any letter suffixes. Sequence numbers and random IDs never define patients.
+
+There are 82 source subtype folders but 81 distinct year-and-slide identifiers: 24 benign and 57 malignant groups. One malignant identifier spans two subtype folders. The study merges those folders conservatively so a possible shared patient cannot cross splits. This does not independently establish 81 biological patients or resolve the paper's 82-patient description. The alias ambiguity is documented rather than repaired with invented identities.
+
+The predeclared 40X subset contains 1,995 images. Seed-42 stratified group partitions give 1,269 / 377 / 349 images from 51 / 15 / 15 groups. Training has 16 benign and 35 malignant groups; validation and test each have 4 benign and 11 malignant groups. No group or exact image bytes cross splits. Both models use the same membership and preprocessing. Near-duplicates, undocumented aliases, and site confounding remain possible.
 
 ## Manifest
 

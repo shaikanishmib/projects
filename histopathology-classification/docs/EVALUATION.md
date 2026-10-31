@@ -1,6 +1,6 @@
 # Evaluation protocol
 
-The primary objective is patient-level malignant-versus-benign discrimination, measured by ROC-AUC on a fixed patient-held-out test partition. Compare the CNN with the fixed color-feature logistic baseline and constant training-patient prevalence predictor. No success threshold or measured performance is claimed before a licensed dataset and clinical-independent research acceptance criterion are specified.
+The primary objective is patient-level malignant-versus-benign discrimination, measured by ROC-AUC on a fixed patient-held-out test partition. Compare the CNN with the fixed color-feature logistic baseline and constant training-patient prevalence predictor. The completed BreaKHis study reports both methods without declaring a clinical or operational success criterion.
 
 ## Partition and selection
 
@@ -8,7 +8,7 @@ For each binary patient diagnosis, sort IDs and shuffle with the configured seed
 
 The baseline uses 16-bin RGB histograms plus channel means and standard deviations (54 features). Training-patient inverse tile-count weights are used for both scaling and logistic fitting, normalized to mean one. C=1 is fixed. A constant probability baseline is the malignant fraction of training patients. The CNN has three convolution stages and global average pooling, learns from scratch on CPU, and uses training-only flips and quarter turns. Inverse tile-count sampling gives each training patient equal expected exposure; replacement means not every image appears in every epoch. There are no pretrained weights or downloads.
 
-The CNN checkpoint with the lowest validation **patient** log loss is selected from the configured fixed epoch budget. All epoch losses are recorded. Patient probability is the mean of its image probabilities. The decision threshold is fixed at 0.5 for every run. No threshold tuning, calibration fitting, or hyperparameter search is performed. If tuning is added later, use only training/validation data, retain the test cohort, and record every trial. Comparing many models against the same test set can itself overfit the test cohort.
+The CNN checkpoint with the lowest validation patient log loss is selected from the configured fixed epoch budget. All epoch losses are recorded. Patient probability is the mean of its image probabilities. The decision threshold is fixed at 0.5 for every run. No threshold tuning, calibration fitting, or hyperparameter search is performed. If tuning is added later, use only training/validation data, retain the test cohort, and record every trial. Comparing many models against the same test set can itself overfit the test cohort.
 
 ## Reports
 
@@ -20,8 +20,18 @@ Two predeclared stress evaluations multiply test-image brightness by 0.8 and 1.2
 
 Every report lists misclassified image IDs with patient ID, label, and probability, ordered by confidence. Inspect these alongside the source images locally. Before claiming a useful research result, review patient-level disagreements, tissue/background content, artifacts, magnification, subtype, and acquisition site; add audited subgroup metadata and report uncertainty where sample sizes permit. No automated subgroup claims are possible from the current minimal manifest.
 
-## Execution and result status
+## Completed BreaKHis study
 
-No experiment, dataset acquisition, generated code, or test suite was executed during implementation, as requested. There are no measured performance results or trained artifacts in this repository. The integration test is designed to run an artificial baseline experiment in a temporary directory when validation is authorized; it asserts pipeline behavior rather than pathology performance. Package version ranges are compatibility declarations, not a tested lockfile. Freeze and retain the exact environment used for any subsequent experiment.
+The original archive and the 40X experiment are described in [DATA.md](DATA.md). The source has 82 subtype folders but 81 conservative year-and-slide groups. Both methods use identical group-disjoint partitions: 51 training groups, 15 validation groups, and 15 test groups. Each held-out partition has four benign groups and eleven malignant groups. All 31 software tests passed. A single-class evaluation test emits one expected scikit-learn warning.
+
+The CNN completed ten CPU epochs with seed 42, four threads, batch size 32, 96-pixel crops, AdamW learning rate 0.001, and weight decay 0.0001. Epoch 1 minimizes validation group log loss at 0.596812. The completed CNN experiment, including validation and stress evaluations, took about 250 seconds; the baseline experiment took about 42 seconds in this environment. The notebook verifies completed-run lineage rather than retraining valid cached experiments on each rendering.
+
+Test group ROC-AUC is 0.954545 for the baseline and 0.977273 for the CNN. Their conditional patient-bootstrap intervals are 0.783135 to 1.000000 and 0.846154 to 1.000000; 988 of 1,000 seed-42 replicates contain both classes. The notebook adds a paired seed-2026 patient bootstrap. Its CNN-minus-baseline AUC interval is -0.071429 to 0.162054, which includes zero. The comparison does not demonstrate a CNN improvement.
+
+At the fixed 0.5 cutoff, the baseline confusion matrix is `[[2, 2], [0, 11]]`; the CNN matrix is `[[0, 4], [0, 11]]`. Balanced accuracy is 0.750000 and 0.500000 respectively. The CNN labels every test group malignant. Group Brier loss is 0.088731 for the baseline and 0.169497 for the CNN. Its paired difference is 0.080767, with interval 0.021795 to 0.138412. Positive differences mean greater CNN probability error.
+
+Validation AUCs are much lower: 0.568182 for the baseline and 0.500000 for the CNN. This partition variation and the very small benign group count limit generalization claims. The source-group ambiguity, single site, center cropping, short training budget, one seed, and absence of external validation remain unresolved. Results provide no diagnostic or clinical-performance evidence.
+
+The notebook contains genuine executed outputs and aggregate subtype errors. Per-image error lists, patient identifiers, predictions, weights, and source images remain local. The artificial fixture integration tests measure software behavior only. Exact package versions are retained in [the aggregate report](../reports/aggregate_results.json); dependency ranges are not a lockfile.
 
 Keep runs in separate new directories. A failed run records failure status when failure occurs after its output directory is created. Runtime package versions, Python/platform, source hashes, manifest hash, effective config, provenance, image hashes and patient split assignments are persisted. These support audit and repeat execution, but deterministic CPU settings cannot guarantee bitwise equivalence across different hardware or library versions. Artifacts are local research records; review deidentification before sharing.

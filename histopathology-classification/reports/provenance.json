@@ -1,0 +1,12 @@
+{
+  "dataset_name": "BreaKHis v1 original university archive",
+  "source_url": "https://www.inf.ufpr.br/vri/databases/BreaKHis_v1.tar.gz",
+  "license": "Noncommercial research with citation, following the provider access paragraph; the page also displays CC BY 4.0.",
+  "license_url": "https://web.inf.ufpr.br/vri/databases/breast-cancer-histopathological-database-breakhis/",
+  "acquired_at": "2026-10-31T22:21:44.129136+00:00",
+  "patient_id_method": "Literal YEAR-SLIDE_ID from source filenames. Merge subtype folders sharing the same identifier to avoid splitting a possible shared patient. This yields 81 conservative groups from 82 source folders.",
+  "usage_rights_confirmed": true,
+  "required_attribution": "Spanhol, Oliveira, Petitjean, Heutte. A Dataset for Breast Cancer Histopathological Image Classification. IEEE TBME 63(7):1455-1462, 2016. doi:10.1109/TBME.2015.2496264",
+  "preprocessing": "Original PNG bytes retained. Study restricted to 40X; 96-pixel center crops for both models.",
+  "archive_sha256": "d118014cf8a58f6d1fc4571e55efb523c932c85cfba2fb05627e455fc40bd640"
+}

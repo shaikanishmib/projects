@@ -1,71 +1,51 @@
-# Histopathology Image Classification
+# Histopathology classification on original BreaKHis images
 
-A research-only binary image classification package for comparing a compact CNN with a color-feature logistic regression baseline on licensed pathology images. The objective is measurable patient-level benign/malignant discrimination under a patient-separated evaluation protocol. This project is not a diagnostic system and has no demonstrated clinical performance.
+The [executed notebook](notebooks/01_patient_level_workflow.ipynb) compares a color-feature logistic baseline with a small CPU CNN on authentic BreaKHis images downloaded from the original university provider. It characterizes all 7,909 images and studies a predeclared 1,995-image 40X subset with conservative patient-disjoint grouping.
 
-**Implementation status:** source, configuration, tests, and experiment reporting are provided. No real dataset is bundled or downloaded. No code, tests, or experiments were executed during implementation. No measured results or trained model are claimed.
+The archive has 82 source folders but 81 distinct year-and-slide identifiers. Two subtype folders sharing one identifier remain together to prevent possible patient leakage. This is a conservative source-group protocol, not independent verification of biological identities. [DATA.md](docs/DATA.md) records the discrepancy, original URL, archive checksum, observed counts, and noncommercial research terms.
 
-## Architecture
+## Completed comparison
 
-`data.py` validates local manifests, provenance, content hashes, and patient identities, then creates diagnosis-stratified patient partitions. `features.py` implements common RGB resizing/cropping and fixed baseline features. `models.py` contains the CPU CNN and training loop. `evaluation.py` reports image and patient outcomes, uncertainty, and errors. `experiment.py` orchestrates immutable per-run outputs. `cli.py` exposes local validation and experiment commands.
+The 40X train / validation / test partitions contain 1,269 / 377 / 349 images from 51 / 15 / 15 groups. Both methods use 96-pixel center crops and seed 42. The CNN trains for ten epochs on four CPU threads; validation patient log loss selects epoch 1. The 0.5 cutoff is fixed before test evaluation.
 
-Data stays local. The runtime does not download images or model weights, contact experiment services, or publish artifacts. Training uses only training patients; CNN checkpoint selection uses validation-patient log loss. Test data is reserved for the fixed final report and predeclared brightness stress checks.
+| Test patient-group metric | Color baseline | CNN |
+| --- | ---: | ---: |
+| ROC-AUC | 0.954545 | 0.977273 |
+| Balanced accuracy | 0.750000 | 0.500000 |
+| Malignant sensitivity | 1.000000 | 1.000000 |
+| Benign specificity | 0.500000 | 0.000000 |
+| Brier loss | 0.088731 | 0.169497 |
 
-## Setup
+The CNN labels all 15 test groups malignant at the fixed cutoff. Its higher AUC does not establish an improvement: the paired CNN-minus-baseline AUC interval is -0.071429 to 0.162054. Only four benign test groups are available. Validation AUCs are much lower than test AUCs, and there is no external or clinical validation. See [the evaluation record](docs/EVALUATION.md) and [aggregate outputs](reports/aggregate_results.json).
 
-Requires Python 3.11+ and a user-provisioned environment with NumPy, Pillow, scikit-learn and PyTorch. Dependency ranges are in `pyproject.toml`; they have not been resolved or tested here. No package installation was performed. In an independently authorized environment, install from this project using your trusted package source:
+## Reproduce locally
 
-```powershell
-python -m pip install -e ".[dev]"
-```
-
-Alternatively, with dependencies already available, set `$env:PYTHONPATH = "$PWD/src"` and invoke `python -m histopathology` without installing the project. The commands below are future execution instructions, not operations performed during implementation.
-
-## Data
-
-Supply a CSV with `image_id,patient_id,path,label` and a provenance JSON documenting the original provider, exact license, acquisition date, and verified patient ID method. Labels are `0=benign`, `1=malignant`. All images for one patient must have a consistent diagnosis. At least three patients per class are needed to form nonempty partitions, though a credible study requires substantially more. See [the data contract](docs/DATA.md) for rights review, identity rules, supported formats, and limitations.
+Use Python 3.12 with the research dependencies. From this directory:
 
 ```powershell
-python -m histopathology validate --manifest data/manifest.csv --data-root data --provenance data/provenance.json --config configs/default.toml
-python -m histopathology run --model baseline --manifest data/manifest.csv --data-root data --provenance data/provenance.json --config configs/default.toml --output runs/baseline-001
-python -m histopathology run --model cnn --manifest data/manifest.csv --data-root data --provenance data/provenance.json --config configs/default.toml --output runs/cnn-001
+python -m venv .venv
+.venv/Scripts/python -m pip install -e ".[dev,research]"
+New-Item -ItemType Directory -Force data
+curl.exe --fail --location --output data/BreaKHis_v1.tar.gz https://www.inf.ufpr.br/vri/databases/BreaKHis_v1.tar.gz
+$env:PYTHONPATH = "$PWD/src"
+.venv/Scripts/python -m histopathology.breakhis --archive data/BreaKHis_v1.tar.gz --output data/breakhis
+.venv/Scripts/python -m pytest tests
 ```
 
-Use the same data, seed and split fractions for both models. Run directories must be new; existing results are never overwritten. Settings include image size, epochs, batch size, learning rate, seed, CPU threads and bootstrap count; unknown config keys and invalid values fail explicitly. Image decoding failures and validation errors stop the run. Whole-slide extraction and mixed-diagnosis patients require a separate protocol.
+Verify the archive SHA-256 against [reports/source.json](reports/source.json). Record the actual new retrieval date and checksum in `data/archive.json` and complete `data/breakhis/provenance.json` using the fields in [the data contract](docs/DATA.md). The published records describe this completed study; do not copy its retrieval date as a new acquisition date. Review the provider's terms before confirming rights.
 
-For a local pipeline check when no licensed images are available:
+Execute the notebook from a fresh kernel in the research environment. It derives the 40X manifest, checks groups and source hashes, runs missing baseline/CNN experiments, and verifies completed local runs before reuse. The exact configuration is [configs/breakhis40x.toml](configs/breakhis40x.toml). Completed runs remain in new local `artifacts/breakhis40x-baseline` and `artifacts/breakhis40x-cnn` directories. Remove or archive an invalid local run explicitly before rerunning; the program rejects existing output directories.
+
+The maintained CLI also supports explicit runs:
 
 ```powershell
-python -m histopathology fixture --output data/synthetic
-python -m histopathology run --model baseline --manifest data/synthetic/manifest.csv --data-root data/synthetic --provenance data/synthetic/provenance.json --output runs/synthetic-baseline
+.venv/Scripts/python -m histopathology run --model baseline --manifest data/breakhis/manifest_40x.csv --data-root data/breakhis --provenance data/breakhis/provenance.json --config configs/breakhis40x.toml --output artifacts/another-baseline
 ```
 
-The fixture is artificial color noise, not pathology. Its scores cannot assess pathology accuracy.
+Use the same manifest, group rule, seed, and split fractions for the CNN. Dependency ranges express compatibility; exact versions are recorded in the report. The completed study used Python 3.12.10, NumPy 2.5.4, Pillow 13.0.0, scikit-learn 1.9.1, and CPU PyTorch 2.15.0.
 
-## Evaluation and artifacts
+## Maintained framework
 
-The primary report is patient-level ROC-AUC; mean image probabilities form each patient prediction. Companion metrics include average precision, balanced accuracy, sensitivity, specificity, F1, Brier score and log loss. A fixed 0.5 threshold, patient bootstrap intervals, constant prevalence baseline, image error records and fixed brightness stress tests support comparison. See [the evaluation protocol](docs/EVALUATION.md) for precise selection rules and interpretation.
+`breakhis.py` parses source identifiers, copies only recognized PNG members into a local collection, checks archive paths and gzip integrity, and writes a manifest with content hashes and magnification. `data.py` verifies image bytes, provenance assertions, identities, and patient splits. `features.py`, `models.py`, and `experiment.py` implement shared preprocessing and immutable experiment runs. `evaluation.py` keeps image and patient-group metrics separate.
 
-Each completed run writes:
-
-- `config.json`, `provenance.json`, `splits.json`: effective settings, original data assertions and hashed split records.
-- `environment.json`: runtime versions, platform, source hashes and manifest digest.
-- `history.json`: CNN epoch training and validation losses; empty for the fixed baseline.
-- `baseline.npz` or `cnn.pt`: numeric baseline state or CNN state dictionary.
-- `validation_predictions.json`, `test_predictions.json`, `metrics.json`: probabilities, metrics, patient intervals and error lists.
-- `status.json`: running, completed or failed status.
-
-The baseline archive stores scaler mean/scale and logistic coefficients/intercept/classes and can be read with `numpy.load(..., allow_pickle=False)`. Its probability formula is `sigmoid(((features - mean) / scale) @ coef.T + intercept)`. CNN checkpoints contain a `SmallCNN` state dictionary; load only trusted local checkpoints with `torch.load(..., weights_only=True, map_location="cpu")`, instantiate the same architecture, and use the saved image size. There is no clinical serving endpoint.
-
-## Tests
-
-When validation is authorized and dependencies are available:
-
-```powershell
-python -m pytest
-```
-
-Tests cover patient separation and deterministic splits, duplicate bytes, path traversal, corrupt images, conflicting diagnoses, rights assertions, invalid configuration, known metric outcomes, patient aggregation, CNN output/gradient structure and an artificial end-to-end baseline run with artifact round-trip checks. They have not been run. Even a passing suite would establish software checks only, not clinical validity or production readiness.
-
-## Limitations
-
-Patient identity correctness and usage rights depend on operator verification. Exact hashes do not detect transformed duplicates. Patient separation does not remove institution, scanner, stain, subtype or magnification confounding. RGB center cropping may remove diagnostic tissue; the small CNN is an intentionally modest comparator and learns no pretrained pathology representation. Mean tile probability ignores tissue amount and tumor burden. No external cohort evaluation, stain normalization study, prospective validation, reader study, clinical calibration, fairness analysis, or deployment validation has been performed. Keep all claims tied to an actual frozen dataset and executed evaluation.
+All 31 tests pass, including archive corruption and source-group parsing checks. Existing artificial fixtures remain software tests and supply no pathology performance evidence. Original images, identifiers, per-image predictions, and model checkpoints are excluded from Git; the report includes aggregate outputs and a small cited panel of transformed illustrative crops. No diagnostic, screening, treatment, or clinical-performance claim is made.
