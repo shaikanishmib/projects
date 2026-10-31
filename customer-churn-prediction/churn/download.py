@@ -2,6 +2,7 @@
 from __future__ import annotations
 import hashlib
 from pathlib import Path
+from urllib.error import URLError
 from urllib.request import Request, urlopen
 
 DATA_URL = (
@@ -11,30 +12,36 @@ DATA_URL = (
 )
 RAW_PATH = Path("data/raw/cell2celltrain.csv")
 MAX_BYTES = 50_000_000
+DATA_SHA256 = "3f6b8ff0b8e8f5975aa0de9f1f54967e6c8cb867a9bec6cbb64f4c8990f9a645"
+
+
+def validate_content(content: bytes) -> str:
+    """Verify the exact CSV used by the maintained benchmark."""
+    digest = hashlib.sha256(content).hexdigest()
+    if digest != DATA_SHA256:
+        raise ValueError("Cell2Cell checksum mismatch; see docs/DATA.md for the pinned file")
+    return digest
 
 
 def download(destination: Path = RAW_PATH) -> str:
     destination = Path(destination)
     if destination.exists():
         content = destination.read_bytes()
-        if len(content) < 100_000 or b"Churn" not in content[:16_384]:
-            raise ValueError("Existing dataset is unexpectedly small or lacks Churn column")
-        return hashlib.sha256(content).hexdigest()
+        return validate_content(content)
 
     request = Request(DATA_URL, headers={"User-Agent": "cell2cell-churn-portfolio/1.0"})
     try:
         with urlopen(request, timeout=60) as response:
             content = response.read(MAX_BYTES + 1)
-    except Exception as exc:
+    except (OSError, URLError) as exc:
         raise RuntimeError(
             "Could not download the real Cell2Cell dataset. "
             "No synthetic fallback is permitted. See docs/DATA.md."
         ) from exc
-    if not (100_000 <= len(content) <= MAX_BYTES) or b"Churn" not in content[:16_384]:
-        raise ValueError("Unexpected dataset response: refusing to save or train")
+    digest = validate_content(content)
     destination.parent.mkdir(parents=True, exist_ok=True)
     destination.write_bytes(content)
-    return hashlib.sha256(content).hexdigest()
+    return digest
 
 
 if __name__ == "__main__":

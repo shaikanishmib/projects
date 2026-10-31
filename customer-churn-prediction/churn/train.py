@@ -1,6 +1,5 @@
 """Train, select, and evaluate churn models on real Cell2Cell records only."""
 from __future__ import annotations
-import hashlib
 import json
 from pathlib import Path
 
@@ -20,7 +19,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
-from .download import RAW_PATH
+from .download import RAW_PATH, validate_content
 
 SEED = 42
 MIN_ROWS = 40_000
@@ -34,7 +33,7 @@ def load_real_data(path: Path = RAW_PATH) -> tuple[pd.DataFrame, pd.Series, str]
             "Real Cell2Cell CSV missing. Run python -m churn.download first. "
             "No synthetic data will be used."
         )
-    digest = hashlib.sha256(path.read_bytes()).hexdigest()
+    digest = validate_content(path.read_bytes())
     frame = pd.read_csv(path, low_memory=False)
     if len(frame) < MIN_ROWS or "Churn" not in frame:
         raise ValueError("Unexpected Cell2Cell file: needs >=40k rows and Churn column")
@@ -47,10 +46,10 @@ def load_real_data(path: Path = RAW_PATH) -> tuple[pd.DataFrame, pd.Series, str]
     frame = frame.loc[valid].copy()
     y = mapped.loc[valid].astype(int)
     X = frame.drop(columns=[c for c in frame if c in DROP_COLUMNS])
-    # Data leakage: never include target variants or identifiers in predictors.
+    # Exclude target variants and identifiers from predictors.
     suspicious = [c for c in X if "churn" in c.lower() or c.lower().endswith("id")]
     X = X.drop(columns=suspicious)
-    # Normalize categorical missing values; numeric parsing remains train-fold-local.
+    # Normalize categorical missing values before fold-local imputation.
     for col in X.select_dtypes(include=["object", "string"]).columns:
         X[col] = X[col].astype("object").where(X[col].notna(), np.nan)
     if X.empty or X.shape[1] < 10:
@@ -88,7 +87,8 @@ def metrics(y_true, scores, threshold: float) -> dict:
 
 
 def choose_threshold(y_valid, scores) -> float:
-    # Deterministic validation-only threshold selection. Never optimize on test.
+    # Break F1 ties by choosing the lowest candidate threshold.
+    scores = np.asarray(scores, dtype=float)
     candidates = np.unique(np.concatenate([np.linspace(0.05, 0.95, 91), [0.5]]))
     f1s = [f1_score(y_valid, scores >= t, zero_division=0) for t in candidates]
     return float(candidates[int(np.argmax(f1s))])
