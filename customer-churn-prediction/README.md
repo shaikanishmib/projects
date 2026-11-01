@@ -1,22 +1,22 @@
-# Customer churn prediction: US Cell2Cell telecom
+# Customer churn prediction with Cell2Cell data
 
-Tabular classification using historical US telecommunications customer records, originally released for the Teradata Center for Customer Relationship Management churn tournament at Duke University.
+This project uses the historical US Cell2Cell telecom dataset to predict customer churn. The aim is to compare a few reasonable classification approaches, choose a model and decision threshold without looking at the test data, and understand where the resulting predictions are useful or limited.
 
-Data: Cell2Cell, 51,047 original labeled training rows, approximately 58 columns. See [DATA.md](docs/DATA.md) for provenance and usage restrictions.
+The dataset contains 51,047 labeled training records and roughly 58 columns. It was originally released for the Teradata Center for Customer Relationship Management churn tournament at Duke University. See [DATA.md](docs/DATA.md) for the source, checksum, and usage restrictions.
 
-## What it does
+## Approach
 
-- Retrieves the real Cell2Cell dataset from a pinned public source; aborts if unavailable.
-- Validates target and dataset size; separates train, validation, and test with stratified sampling.
-- Compares a majority-class baseline, regularized logistic regression, and a random forest.
-- Fits preprocessing within each training fold to avoid validation/test leakage.
-- Selects the model by validation average precision, chooses an F1-maximizing decision threshold on validation only, and evaluates the untouched test set once.
-- Saves metrics, predictions, schema, and the trained pipeline locally. See [the executed benchmark](docs/BENCHMARK.md) for results and limitations.
+The training pipeline compares a majority-class baseline, regularized logistic regression, and random forest. It uses stratified training, validation, and test partitions (seed 42). Preprocessing is fitted only on the appropriate training data to avoid leaking information into validation or test results.
 
-## Quick start
+The model is chosen using **validation average precision**. The classification cutoff is then selected on validation data to maximize F1. Only after both choices are fixed is the test set evaluated. The [benchmark report](docs/BENCHMARK.md) contains the measured results and error analysis; this README deliberately does not substitute example scores for executed results.
+
+The completed research notebook analyzes the same 51,047 records. The command-line implementation follows the same data, split, preprocessing, candidate-model, and validation-selection rules.
+
+## Run locally
+
+From the `customer-churn-prediction` directory:
 
 ```powershell
-cd customer-churn-prediction
 py -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
@@ -25,17 +25,16 @@ python -m churn.train
 python -m pytest -q
 ```
 
-Mac/Linux: replace the activation command with `source .venv/bin/activate` and use `python3` if needed.
+On macOS or Linux, activate with `source .venv/bin/activate` and use `python3` if required.
 
-You can instead download the authorized source yourself and save it as `data/raw/cell2celltrain.csv`. All dataset downloads and generated outputs are gitignored.
+The downloader retrieves the pinned Cell2Cell source and checks its SHA-256 hash. It stops if the source is unavailable or the bytes do not match. If you have obtained the authorized source yourself, place it at `data/raw/cell2celltrain.csv`. Downloaded data and generated artifacts are excluded from Git.
 
-## Reproducibility notes
-Dataset download is pinned to an upstream Git commit; the original upstream file must remain reachable. The downloader and training loader verify the documented SHA-256 before accepting the CSV. Model results record the checksum. The dataset's historical age limits how well the model represents the current US telecom market. There is no external/temporal holdout and no causal retention-effect evaluation. Split seed is 42.
+After a successful training run, the pipeline writes `artifacts/metrics.json`, `artifacts/model.joblib`, and `artifacts/test_predictions.csv`.
 
-## Outputs
+## What the results can and cannot show
 
-`artifacts/metrics.json`, `artifacts/model.joblib`, `artifacts/test_predictions.csv`. These appear only after successful training.
+The evaluation measures how these models perform on a held-out partition of the historical dataset. It is **not** a test of modern telecom customer behavior. There is no later-in-time or external holdout, and the study does not estimate whether a retention intervention would actually prevent churn.
 
-The completed research notebook reports the executed benchmark on 51,047 records. The engineering pipeline uses the same data, split seed, preprocessing, candidate models, and validation selection rules. Dependency ranges allow compatible releases; exact numerical replication also requires the original library versions and numerical environment.
+The upstream dataset is pinned to a specific Git commit, and the downloader and loader verify its hash. Results record the dataset checksum. Dependency ranges allow compatible installations, but exact numerical reproduction also depends on the library versions and numerical environment used for the original run.
 
-This repository does not grant any license to redistribute the Cell2Cell dataset.
+The source dataset is not redistributed here, and this repository does not grant permission to redistribute it.
