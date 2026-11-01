@@ -1,29 +1,14 @@
 # SEC Filing Intelligence
 
-An educational Python project for evidence retrieval over public SEC filings.
-It compares a term-overlap baseline with BM25 plus bigram rank fusion and
-returns a verbatim passage with a verifiable source citation. It runs offline
-on small, clearly fictional fixtures. No model, API key, vector database, or
-external service is required.
+I built this project to explore a specific problem in filing search: finding a passage is not enough if the result cannot be traced to the right document and period. The code compares a simple term-overlap baseline with BM25 and bigram rank fusion, then returns the exact passage and a checkable source citation. It runs offline on a handful of fictional filings, with no model, API key, vector database, or external service.
 
-**Implementation status:** source, tests, fixtures, and an unexecuted notebook
-are provided. Generated code, tests, notebook cells, and evaluation have **not
-been executed during implementation**. No real SEC filings have been downloaded,
-and no measured results are claimed. Validation is a separate step.
+**Status:** The repository contains source code, tests, fixtures, and a notebook with no execution outputs. The code, tests, notebook cells, and evaluation were **not executed during the original implementation**; there are no measured results to report. No real SEC filings were downloaded. The commands below are provided for a separate validation run, not as evidence that one has occurred.
 
 ## Problem and scope
 
-Filings contain similar language across issuers and years. A useful answer must
-trace to the correct issuer, period, document, and passage. This project teaches
-retrieval, source identity, abstention, evaluation, and the limits of treating
-retrieved text as trustworthy evidence.
+SEC filings can use very similar language across companies and reporting years. A result that points to the wrong issuer or period is not useful, even when the passage sounds relevant. This experiment focuses on source identification, retrieval, abstention, and checking whether a quotation really matches the stored document.
 
-The answer component is deliberately extractive: it returns one full paragraph
-as an `evidence_excerpt`, not an LLM-generated summary. It cannot reliably
-calculate growth, reconcile accounting definitions, compare multiple filings,
-or establish that a retrieved passage answers every part of a question.
-The project is a transparent starting point for RAG, not a validated financial
-research system.
+The response is deliberately extractive: it returns one full paragraph as an `evidence_excerpt`, rather than generating a summary. That keeps the citation check straightforward, but it also means the code cannot reliably calculate growth, reconcile accounting definitions, compare filings, or answer questions that require combining evidence. This is a small retrieval exercise, not a validated financial research system.
 
 ## Setup and offline use
 
@@ -191,7 +176,7 @@ as trusted instructions. Adding a generative model would require a separate
 threat model and evaluation of instruction isolation, fabricated citations,
 tool permissions, and information disclosure.
 
-## Notebook, files, and limitations
+## Notebook and known limitations
 
 Open `notebooks/01_grounded_retrieval.ipynb` to explore chunks, rankings,
 citations, hand-calculated metrics, and adversarial data. All cells have empty
@@ -209,8 +194,4 @@ paragraphs and whole-index scans are unsuitable for large corpora. Lexical
 ranking cannot resolve paraphrases, ambiguous entities, restatements, financial
 units, or multi-hop questions. There is no trained model and no training claim.
 
-Use only for education and research. Evidence excerpts are not investment,
-accounting, or legal advice. Check the original filing, its amendments, context,
-units, and dates before drawing conclusions. Real-data acquisition, dependency
-compatibility, test outcomes, notebook execution, and retrieval quality all
-remain unverified until separately run and reviewed.
+Use this project for learning and experimentation, not investment, accounting, or legal decisions. For any real filing, read the original document and its amendments and check the period, units, and surrounding context. Real-data acquisition, dependency compatibility, test outcomes, notebook execution, and retrieval quality remain unverified until they are separately run and reviewed.
