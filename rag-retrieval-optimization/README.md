@@ -1,27 +1,44 @@
-# RAG foundations and retrieval optimization
+# Retrieval experiments on SciFact and FiQA
 
-A reproducible retrieval study on the original BEIR SciFact and FiQA-2018 datasets, with a complete local research notebook and separate Python modules for acquisition, validation, chunking, indexing, ranking, and evaluation.
+Does a more complicated retrieval pipeline actually find better evidence? I tested that question on the BEIR SciFact and FiQA-2018 datasets, comparing keyword search, two sentence-embedding models, rank fusion, reranking, and several ways of splitting documents.
 
-The [public notebook](notebooks/01_public_retrieval_research.ipynb) has the same cell sources as the executed local report. It contains no saved outputs or execution counts. The local report is `notebooks/01_complete_retrieval_research.ipynb`; it is ignored by Git and retains its genuine tables and figures. Dataset records, models, embeddings, and indexes remain local.
+This is a **retrieval study**, not an answer-generating RAG application. The evaluation asks whether relevant source documents appear near the top of the search results. It does not measure generated answers or factual accuracy.
 
-## Measured test results
+## Results
 
-| Method | SciFact nDCG@10 | FiQA nDCG@10 |
+The main comparison uses the full test splits: 300 queries from SciFact and 648 from FiQA. Chunk-level results are mapped back to their source document IDs before scoring.
+
+| Retrieval method | SciFact nDCG@10 | FiQA nDCG@10 |
 | --- | ---: | ---: |
 | BM25 | 0.6618 | 0.2321 |
 | all-MiniLM-L6-v2 | 0.6451 | 0.3687 |
 | multi-qa-MiniLM-L6-cos-v1 | 0.5455 | 0.3599 |
-| Validation-selected reciprocal rank fusion | 0.7068 | 0.3817 |
-| TinyBERT reranking, maximum 20 candidates | 0.6762 | 0.3350 |
-| TinyBERT reranking, maximum 50 candidates | 0.6621 | 0.3070 |
+| Reciprocal rank fusion (selected on validation data) | **0.7068** | **0.3817** |
+| TinyBERT reranking, up to 20 candidates | 0.6762 | 0.3350 |
+| TinyBERT reranking, up to 50 candidates | 0.6621 | 0.3070 |
 
-Fusion improves on the individual baselines in these runs. The small cross-encoder reduces accuracy, and pseudo-relevance expansion also harms both datasets. Whole documents lead the BM25 chunking validation comparisons; this does not establish the best segmentation for dense retrieval. The notebook reports per-query regressions, candidate counts, paired uncertainty, truncation, and resource costs. These are retrieval results against BEIR judgments, without an answer-generation or factuality evaluation.
+Rank fusion did best on both test sets. The difference between the BM25 and dense baselines is also worth noting: BM25 was stronger than either encoder on SciFact, while dense retrieval was substantially stronger on FiQA.
 
-The complete aggregate tables are in [reports/research/metrics.csv](reports/research/metrics.csv). Exact preprocessing, validation selection, timing scope, and limitations appear in the notebook. The test sets contain 300 SciFact and 648 FiQA queries.
+Adding TinyBERT reranking did **not** help. Its scores fell below fusion on both datasets, and increasing the candidate pool from 20 to 50 made them worse. The corpus-derived pseudo-relevance expansion experiments also reduced retrieval quality. These are useful failures: more stages do not automatically make a retrieval system better.
 
-## Reproduce the study
+Whole-document indexing performed best in the BM25 chunking validation comparisons. That finding should not be generalized to dense retrieval, where the effects of segmentation can differ. For per-query failures, candidate counts, paired uncertainty estimates, truncation checks, and resource measurements, see the [research notebook](notebooks/01_public_retrieval_research.ipynb) and [aggregate metrics](reports/research/metrics.csv).
 
-Use Python 3.12 or newer. From this directory, create a local environment and install the research and test dependencies:
+## What I compared
+
+The study includes four document representations: whole documents, fixed windows, recursive boundary splitting, and sentence boundary splitting. It evaluates BM25 alongside exact cosine similarity, exhaustive FAISS search, and persistent Qdrant in embedded mode, using two MiniLM encoders. I also tested reciprocal rank fusion, cross-encoder reranking, and query transformations derived from the corpus.
+
+Chunking and fusion settings were chosen on validation data before the test comparisons. The reported metrics include nDCG@10, MRR@10, MAP@10, and Recall@1/3/5/10/20. Tests cover retrieval formulas, document-level aggregation, selection behavior, leakage prevention, and dataset integrity.
+
+There are important boundaries to the measurements:
+
+- Search latency comes from a sequential local pass with query embeddings precomputed; it excludes dense query encoding. Reranking time includes candidate retrieval and cross-encoder scoring.
+- Memory observations include sampled RSS and a Windows process-lifetime peak working-set counter. They are not isolated per-index memory benchmarks.
+- Qdrant ran locally in persistent embedded mode, not as a server. FiQA exceeds the client's recommendation of 20,000 points for embedded operation.
+- Semantic chunking and generative HyDE were not run. No answer generation or faithfulness evaluation was performed.
+
+## Run the study
+
+Use Python 3.12 or newer. From the `rag-retrieval-optimization` directory, run these commands in PowerShell:
 
 ```powershell
 python -m venv data/research-venv
@@ -35,22 +52,14 @@ data/research-venv/Scripts/python.exe scripts/execute_notebook.py
 data/research-venv/Scripts/python.exe scripts/publish_notebook.py
 ```
 
-Acquisition refuses to overwrite existing dataset extractions. Use `scripts/acquire.py --verify-only` for existing archives. `models.lock.json` pins model commits and file hashes. `reports/requirements-lock.txt` records the executed environment; install it when reproducing that environment. Cached matrices preserve their initial measured encoding times. To obtain new timings, use a separate project-local experiment directory rather than mixing timing records.
+The acquisition script will not overwrite existing dataset extractions. To check data you already have, run `scripts/acquire.py --verify-only`. The model revisions and hashes are recorded in [models.lock.json](models.lock.json); the executed dependency environment is recorded in [reports/requirements-lock.txt](reports/requirements-lock.txt). For fresh encoding timing measurements, use a separate local experiment directory rather than reusing cached matrices.
 
-The notebook builder refuses to overwrite an executed local report. Edit that notebook directly when revising a completed report. The publication script reads it, writes the public copy, verifies cell-source identity and empty public execution state, and confirms that the local bytes did not change.
+The [public notebook](notebooks/01_public_retrieval_research.ipynb) contains the research code without saved outputs or execution counts. The executed local notebook, `notebooks/01_complete_retrieval_research.ipynb`, retains its actual results and figures but is excluded from Git. The publication script verifies that the two notebooks have identical cell sources and does not alter the local report. The notebook builder deliberately refuses to overwrite an executed report.
 
-## Study design
+For an optional process-memory observation, run `scripts/monitor_process.py --pid <PID>` from another terminal with the project Python executable while the experiment runs. The runner prints its PID.
 
-The experiment matrix compares whole documents, fixed windows, recursive boundary splitting, and sentence boundary splitting; two MiniLM encoders; BM25; exact cosine search; exhaustive FAISS; embedded persistent Qdrant; reciprocal rank fusion; cross-encoder reranking; and corpus-derived query transformations. Validation selects chunking and fusion configurations. Full test splits supply nDCG@10, MRR@10, MAP@10, and Recall@1/3/5/10/20. Chunk retrieval is aggregated to original document IDs before evaluation.
+## Data and project files
 
-Search latency uses one sequential local pass. Dense query vectors are precomputed, so those times exclude query encoding. Reranking includes candidate retrieval and cross-encoder scoring. Matrix sizes and artifact storage are measured. An optional process observer records sampled RSS and the observed Windows lifetime peak-working-set counter; it does not isolate each index's memory cost. Semantic chunking and generative HyDE are outside the executed matrix.
+[DATA.md](docs/DATA.md) documents the original sources, checksums, splits, attribution, and unresolved text-reuse rights. FiQA's 38 empty document bodies were left unchanged. Raw documents, model files, embeddings, indexes, per-query diagnostics, and the executed notebook remain local rather than being committed.
 
-For process-memory observations, run `scripts/monitor_process.py --pid <PID>` with the project Python executable in another terminal while the experiment runner is active. The runner prints its process ID. FiQA exceeds the Qdrant client's 20,000-point recommendation for embedded mode; these measurements describe local persistent Qdrant, not a server deployment.
-
-Read [DATA.md](docs/DATA.md) for source URLs, exact counts, hashes, split definitions, quality findings, attribution, and unresolved underlying-text rights. FiQA's 38 empty document bodies remain unchanged. No raw dataset content is published.
-
-## Code and evidence
-
-`src/rag_data/` contains maintained modules. `tests/` checks formulas, failure cases, deterministic selection, leakage prevention, backend consistency, chunk aggregation, and real dataset integrity. Test fixtures are small correctness examples, not benchmark observations.
-
-`reports/research/` holds aggregate measurements and the execution environment. Local per-query diagnostics, figures, matrices, and Qdrant storage are under `data/`. `reports/notebook-verification.json` records publication-copy checks. Cleanup manifests and recoverable legacy work remain local under `reports/cleanup/` and `.local/`.
+The reusable implementation is in [src/rag_data](src/rag_data); [tests](tests) contains the automated checks. Aggregate results and environment details are in [reports/research](reports/research), and [notebook-verification.json](reports/notebook-verification.json) records the public-copy checks. The small test fixtures are correctness examples, not benchmark data.
