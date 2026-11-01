@@ -1,25 +1,29 @@
-# Transaction fraud ranking on real credit-card records
+# Fraud detection on chronological credit-card transactions
 
-The [executed research notebook](notebooks/01_real_data_workflow.ipynb) studies 284,807 ULB/Worldline transactions from OpenML dataset 1597. It compares a constant prior, two logistic regressions, and histogram gradient boosting on chronological partitions. The report covers every original predictor, imbalance, calibration, review capacity, aggregate errors, and time-block uncertainty.
+I compared several fraud-ranking models using the 284,807 genuine ULB/Worldline transactions available as OpenML dataset 1597. Because fraud cases are rare, the main question is not just overall classification accuracy: it is whether a model places the right transactions high enough in a review queue.
 
-IEEE-CIS was preferred, but Kaggle credentials and competition access were unavailable. The fallback contains genuine transactions and fraud labels; its two-day horizon and anonymized PCA features limit what the study can establish. Source records and individual predictions are excluded from Git. [DATA.md](docs/DATA.md) records provenance, checksums, rights evidence, and the exact filtering protocol.
+The [executed notebook](notebooks/01_real_data_workflow.ipynb) covers class imbalance, every original predictor, calibration, review capacity, errors, and uncertainty across time blocks.
 
-## Executed results
+IEEE-CIS was the preferred dataset, but competition access and Kaggle credentials were unavailable. The ULB dataset provided real labeled transactions instead. It spans only two days and most features are anonymized PCA components, so it cannot establish how a system would behave in a contemporary payment operation. [DATA.md](docs/DATA.md) records the source and checksums.
 
-After removing later exact predictor repeats, the training / validation / test partitions contain 150,174 / 54,811 / 70,678 records. Model choice and thresholds use validation only.
+## Results on the held-out period
+
+After excluding later exact repeats of predictor values, the chronological train, validation, and test partitions contain 150,174, 54,811, and 70,678 records respectively. Model and threshold choices were made on validation data.
 
 | Model | Validation AP | Test AP | Test ROC-AUC | Test Brier loss |
 | --- | ---: | ---: | ---: | ---: |
 | Constant training prior | 0.000821 | 0.001372 | 0.500000 | 0.001371 |
 | Logistic regression | 0.518610 | 0.640964 | 0.971417 | 0.000810 |
-| Balanced logistic regression | 0.735804 | 0.760540 | 0.977691 | 0.036272 |
+| Balanced logistic regression | **0.735804** | **0.760540** | **0.977691** | 0.036272 |
 | Histogram boosting | 0.105091 | 0.109533 | 0.613035 | 0.001457 |
 
-Balanced logistic regression wins on validation AP. Its validation F1 threshold flags 69 test transactions: 66 frauds and 3 false alerts, with 31 frauds missed. Precision is 0.956522 and recall is 0.680412. A 200-resample, 30-minute block bootstrap gives a conditional AP interval of 0.656239 to 0.860407. Its Brier loss is much worse than the constant prior, so the ranking result does not establish calibrated fraud probabilities. See [failure modes](docs/FAILURE_MODES.md).
+Balanced logistic regression had the highest validation average precision. At its validation-selected F1 cutoff, it flagged 69 test transactions: 66 genuine frauds and three false alerts. It missed 31 frauds. That gives precision of 0.956522 and recall of 0.680412.
+
+This is a useful ranking result, but not a well-calibrated probability model. Its Brier loss is worse than the constant-prior baseline. A 200-resample bootstrap over 30-minute blocks gives a conditional test AP interval of 0.656239–0.860407. See [failure modes](docs/FAILURE_MODES.md) for the tradeoffs.
 
 ## Reproduce the study
 
-Use Python 3.12 and the research dependencies. From this directory:
+Use Python 3.12. Run these commands from `transaction-anomaly-detection` in PowerShell:
 
 ```powershell
 python -m venv .venv
@@ -31,12 +35,14 @@ $env:PYTHONPATH = "$PWD/src"
 .venv/Scripts/python -m pytest tests
 ```
 
-The CLI validates the caller-supplied checksum before fitting and rejects an existing output path. It limits numerical fitting to four threads and writes aggregate metrics. The notebook additionally needs `data/manifest.json`, copied from the reviewed retrieval record in [reports/source.json](reports/source.json), and an IPython kernel using the research environment. Execute all cells from a clean kernel with the project directory as the working directory. Exact package versions appear in [the aggregate results](reports/aggregate_results.json). Dependency ranges alone do not guarantee identical values across releases.
+The CLI checks the supplied checksum before fitting, uses at most four threads for numerical fitting, and refuses to overwrite an existing result. The notebook also expects `data/manifest.json`, copied from the reviewed retrieval record at [reports/source.json](reports/source.json), and a kernel using this research environment. Run the notebook from a clean kernel in the project directory.
 
-## Maintained components
+Executed package versions are listed in [reports/aggregate_results.json](reports/aggregate_results.json). Compatible dependency ranges alone do not guarantee identical measurements.
 
-`creditcard.py` reads original ARFF or Parquet fields, checks numeric contracts, partitions elapsed time, filters later exact predictor repeats without labels, and runs the frozen candidate comparison. `evaluation.py` supplies validation threshold selection and probability diagnostics. Tests check chronological boundaries, time ties, nonfinite fields, repeated predictors, feature exclusions, and checksum failure before fitting.
+## Implementation and scope
 
-The earlier synthetic generator, generic CSV interface, and batch-scoring pipeline remain maintained for software exercises. Their invented account and calendar fields are absent from this research benchmark. Their contracts and commands are documented in [the synthetic workflow reference](docs/SYNTHETIC_WORKFLOW.md).
+`creditcard.py` reads the original ARFF or Parquet fields, validates numerical inputs, constructs chronological partitions, removes later exact predictor repeats without using labels, and compares the fixed model candidates. `evaluation.py` handles validation-only threshold selection and probability diagnostics. The tests check time boundaries, tied timestamps, nonfinite values, repeated predictors, excluded features, and checksum failures.
 
-This is a historical supervised fraud benchmark. It does not estimate fraud prevention, recovered money, contemporary payment performance, or the effects of an investigator's actions.
+An earlier synthetic workflow remains in the repository as a software exercise. Its invented account and calendar fields do **not** appear in the real-data study; see [the synthetic workflow reference](docs/SYNTHETIC_WORKFLOW.md).
+
+This is a historical supervised benchmark, not an estimate of avoided fraud, recovered money, investigator effectiveness, or performance on current transactions. Raw records and individual predictions are not published.
